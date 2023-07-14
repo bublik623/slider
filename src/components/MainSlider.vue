@@ -1,7 +1,7 @@
 <script setup>
 import SlideItem from "@/components/SlideItem.vue";
 import {computed, onMounted, onUnmounted, ref, watch} from "vue";
-import {getPhotos} from "../services/photos"
+import {getPhotos} from "@/services/photos"
 
 // refs to html elements
 const mainSliderRef = ref(null)
@@ -39,7 +39,11 @@ function moveSlide(direction) {
 
 function scroll() {
   if (!sliderWrapperRef.value) return
-  sliderWrapperRef.value.style.transform = `translateX(-${(slideWidth.value + slidesSpace.value) * currentSlideIndex.value}px)`
+  sliderWrapperRef.value.scrollTo({
+    left: (slideWidth.value + slidesSpace.value) * currentSlideIndex.value,
+    top: 0,
+    behavior: 'smooth'
+  });
 }
 
 watch(currentSlideIndex, () => {
@@ -77,11 +81,37 @@ onUnmounted(() => {
   }
 })
 
+let isDragging = false;
+let startX = 0;
+let scrollLeft = 0;
+
+const startDrag = (event) => {
+  isDragging = true;
+  const pageX = event.pageX || event.changedTouches[0]?.pageX
+  startX = pageX - sliderWrapperRef.value.offsetLeft;
+  scrollLeft = sliderWrapperRef.value.scrollLeft;
+};
+
+const drag = (event) => {
+  if (!isDragging) return;
+  event.preventDefault();
+  const pageX = event.pageX || event.changedTouches[0]?.pageX
+  const x = pageX - sliderWrapperRef.value.offsetLeft;
+  const walk = (x - startX) * 3;
+  sliderWrapperRef.value.scrollLeft = scrollLeft - walk;
+};
+
+const endDrag = () => {
+  isDragging = false;
+  currentSlideIndex.value = Math.round(sliderWrapperRef.value.scrollLeft / (slideWidth.value + slidesSpace.value))
+  scroll()
+};
+
 </script>
 
 <template>
- <div id="main-slider" ref="mainSliderRef" :style="{padding: `${slidesSpace}px`}">
-   <div ref="sliderWrapperRef" class="slider-wrapper">
+ <div id="main-slider" ref="mainSliderRef" :style="{padding: `${slidesSpace}px`}" >
+   <div ref="sliderWrapperRef" class="slider-wrapper" @mousedown="startDrag" @touchstart="startDrag" @touchmove="drag" @mousemove="drag" @touchend="endDrag" @mouseup="endDrag">
     <SlideItem v-for="item in items" parentId="main-slider" :key="item.id" :photo="item" :style="{width: slideWidth + 'px', marginRight: `${slidesSpace}px`}"/>
    </div>
    <div class="nav-container">
@@ -100,6 +130,8 @@ onUnmounted(() => {
    height: calc(100% - 30px);
    transition: all 0.3s ease;
    margin-bottom: 5px;
+   overflow-x: auto;
+   cursor: grab;
  }
  .nav-container {
    display: flex;
