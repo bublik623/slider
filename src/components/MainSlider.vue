@@ -97,7 +97,7 @@ const drag = (event) => {
   event.preventDefault();
   const pageX = event.pageX || event.changedTouches[0]?.pageX
   const x = pageX - sliderWrapperRef.value.offsetLeft;
-  const walk = (x - startX) * 3;
+  const walk = (x - startX);
   sliderWrapperRef.value.scrollLeft = scrollLeft - walk;
 };
 
